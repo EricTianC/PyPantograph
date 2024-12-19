@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
+from fastapi import FastAPI
+
+app = FastAPI()
 
 import subprocess
 from pathlib import Path
 from pantograph.expr import GoalState
 from pantograph.server import Server
-import json
+
+
 
 def get_project_and_lean_path():
     cwd = Path(__file__).parent.resolve() / 'Example'
@@ -27,14 +31,28 @@ def state2json(state: GoalState):
         "is_solved": state.is_solved,
     }
 
-if __name__ == '__main__':
-    project_path, lean_path = get_project_and_lean_path()
-    print(f"$PWD: {project_path}")
-    print(f"$LEAN_PATH: {lean_path}")
-    server = Server(imports=['Example'], project_path=project_path, lean_path=lean_path)
-    state0 = server.goal_start("forall (p q: Prop), Or p q -> Or q p")
-    state1 = server.goal_tactic(state0, goal_id=0, tactic="intro p q")
 
-    print(state2json(state1))
-    # state1 = server.goal_tactic(state0, goal_id=0, tactic="aesop")
-    # assert state1.is_solved
+
+project_path, lean_path = get_project_and_lean_path()
+print(f"$PWD: {project_path}")
+print(f"$LEAN_PATH: {lean_path}")
+server = Server(imports=['Example'], project_path=project_path, lean_path=lean_path)
+
+# check if the server is working
+state0 = server.goal_start("forall (p q: Prop), Or p q -> Or q p")
+state1 = server.goal_tactic(state0, goal_id=0, tactic="aesop")
+assert state1.is_solved
+
+@app.get("goal_start")
+async def goal_start(prop: str):
+    state0 = server.goal_start(prop)
+    return state2json(state0)
+    
+@app.get("goal_tactic")
+async def goal_tactic(state, goal_id: int, tactic: str):
+    new_state = server.goal_tactic(state, goal_id, tactic)
+    return state2json(new_state)
+
+@app.route("/")
+async def test(request):
+   return {"hello": "world"}

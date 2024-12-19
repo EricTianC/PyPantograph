@@ -1,3 +1,6 @@
+本项目是 leanf 项目的 Pantograph 后端
+
+===
 # PyPantograph
 
 A Machine-to-Machine Interaction System for Lean 4.
